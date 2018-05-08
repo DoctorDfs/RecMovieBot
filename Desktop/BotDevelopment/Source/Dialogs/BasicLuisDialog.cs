@@ -22,8 +22,11 @@ namespace Microsoft.Bot.Sample.LuisBot
         private string username = string.Empty;
         private string convID = string.Empty;
         private string channel = string.Empty;
-        private int i = 0;
-
+        private bool setPreferencesClose = true;
+      
+        private Dictionary<EntityRecommendation, double?> entityScore = new Dictionary<EntityRecommendation, double?>();
+        private Dictionary<EntityRecommendation, List<EntityRecommendation>> entitiesPreferences = new Dictionary<EntityRecommendation, List<EntityRecommendation>>();
+        private List<EntityRecommendation> valuetedEntities = new List<EntityRecommendation>();
 
         public BasicLuisDialog(Activity activity) : base(new LuisService(new LuisModelAttribute(
             ConfigurationManager.AppSettings["LuisAppId"],
@@ -83,131 +86,121 @@ namespace Microsoft.Bot.Sample.LuisBot
         [LuisIntent("GreetingBye")]
         public async Task GreetingByeIntent(IDialogContext context, LuisResult result)
         {
-            string[] greetingList = new string[3];
-            greetingList[0] = "Bye";
-            greetingList[1] = "Bye bye";
-            greetingList[2] = "See you soon!";
+            if (setPreferencesClose == true)
+            {
+                string[] greetingList = new string[3];
+                greetingList[0] = "Bye";
+                greetingList[1] = "Bye bye";
+                greetingList[2] = "See you soon!";
 
-            Random rnd = new Random();
-            await context.PostAsync($"{greetingList[rnd.Next(0, 2)]}, I hope I have been for help! ");
-
+                Random rnd = new Random();
+                await context.PostAsync($"{greetingList[rnd.Next(0, 2)]}, I hope I have been for help! ");
+            }else
+                await context.PostAsync("Respond to the question please!");
             context.Wait(MessageReceived);
         }
 
 
-        [LuisIntent("LearningUserPreferences")]
+        [LuisIntent("LearningUserPreference")]
         public async Task LearningUserPreferencesIntent(IDialogContext context, LuisResult result)
         {
-            Dictionary<EntityRecommendation, double?> entityScore = new Dictionary<EntityRecommendation, double?>();
+            
+          
 
             if (firstAcces == true)
             {
-
-                if (result.Entities.Count > 0)
+                if (setPreferencesClose == true)
                 {
-                    LinkedList<string> detectedSentences = await ProcessText.InvokeRequestResponseService(result.Query);
-
-                    int j = 0;
-
-                    LinkedList<string>.Enumerator enumeratorSentence = detectedSentences.GetEnumerator();
-
-                    while (enumeratorSentence.MoveNext())
+                    if (result.Entities.Count > 0)
                     {
-                        double? score = await SentimentRecognizer.GetSentiment(enumeratorSentence.Current, Convert.ToString(j++));
-                        //per ogni entità controllo se sia presente in questa frase
-                        IEnumerator<EntityRecommendation> entity = result.Entities.GetEnumerator();
-                        while (entity.MoveNext())
+                        LinkedList<string> detectedSentences = await ProcessText.InvokeRequestResponseService(result.Query);
+
+                        int j = 0;
+
+                        LinkedList<string>.Enumerator enumeratorSentence = detectedSentences.GetEnumerator();
+
+                        while (enumeratorSentence.MoveNext())
                         {
-                            if (enumeratorSentence.Current.Contains(entity.Current.Entity))
+                            double? score = await SentimentRecognizer.GetSentiment(enumeratorSentence.Current, Convert.ToString(j++));
+                            //per ogni entità controllo se sia presente in questa frase
+                            IEnumerator<EntityRecommendation> e = result.Entities.GetEnumerator();
+                            while (e.MoveNext())
                             {
-                                entityScore.Add(entity.Current, score);
+                                if (enumeratorSentence.Current.Contains(e.Current.Entity))
+                                {
+                                    entityScore.Add(e.Current, score);
+                                }
                             }
+                            e.Dispose();
                         }
-                        entity.Dispose();
+                        enumeratorSentence.Dispose();
+
+                        //insermento delle preferenze  nel db
+                        Dictionary<EntityRecommendation, double?>.KeyCollection keys = entityScore.Keys;
+                        Dictionary<EntityRecommendation, double?>.KeyCollection.Enumerator key = keys.GetEnumerator();
+
+                        //controllo se un entità è di più tipi
+                        List<EntityRecommendation> copyEntity = new List<EntityRecommendation>(keys);
+                        List<string> examinedKeys = new List<string>();
+
+                        List<EntityRecommendation> resultEntity = new List<EntityRecommendation>();
+
+                        while (key.MoveNext())
+                        {
+
+                            if (!examinedKeys.Contains(key.Current.Entity))
+                            {
+                                resultEntity = copyEntity.FindAll(x => x.Entity.Equals(key.Current.Entity));
+                            }
+                            examinedKeys.Add(key.Current.Entity);
+
+                            List<EntityRecommendation>.Enumerator enu = resultEntity.GetEnumerator();
+
+                            if (resultEntity.Count > 0 && resultEntity.Count < 2)
+                            {
+                                //set preferences
+                                
+                            }
+                            else {
+                                
+                                if (resultEntity.Count > 1)
+                                {
+                                   
+                                    string question = string.Empty;
+                                    int i = 1;
+
+                                    while (enu.MoveNext())
+                                    {
+                                        if (i == 1) { 
+                                            question = $"{enu.Current.Entity} like ";
+                                            entitiesPreferences.Add(enu.Current, resultEntity);
+                                        }
+
+                                        if (i < resultEntity.Count && i > 0)
+                                            question += enu.Current.Type + " or ";
+
+                                        if (i == resultEntity.Count)
+                                            question += enu.Current.Type + " ? ";
+                                        i++;
+                                    }
+
+                                    await context.PostAsync(question);
+                                }
+                            }
+
+                            resultEntity.Clear();                      
+                        }
                     }
-                    enumeratorSentence.Dispose();
-
-                    //insermento delle preferenze  nel db
-                    Dictionary<EntityRecommendation, double?>.KeyCollection keys = entityScore.Keys;
-                    Dictionary<EntityRecommendation, double?>.KeyCollection.Enumerator key = keys.GetEnumerator();
-
-                    //si da per scontato che il dataset di riconoscimento e quello di inserimento dati siano uguali(cosa normale)
-                    DbAccess db = DbAccess.GetInstanceOfDbAccess();
-                    db.OpenConnection();
-
-                    bool insert = true;
-
-                    CommandQuery command = CommandQuery.GetInstanceCommandQuery();
-
-                    while (key.MoveNext())
-                    {
-                        double? p;
-                        entityScore.TryGetValue(key.Current, out p);
-                        Debug.Print($"{key.Current.Entity} ---- {p}");
-                        Debug.Print($"{key.Current.Type}----{key.Current.Entity}");
-
-                        if (key.Current.Type.Equals("movie"))
-                        {
-                            double? score;
-                            entityScore.TryGetValue(key.Current, out score);
-                            int rating = 0;
-                            if (score > 0.5)
-                                rating = 1;
-
-                            Debug.Print($"{key.Current.Entity} ---- {rating}");
-
-                            //insert = command.InsertPreferencesMovie(Convert.ToInt32(command.GetIdUserFromIdChat(convID,db.GetConnection())),Convert.ToInt32(command.GetMovieIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
-                        }
-                        if (key.Current.Type.Equals("actor"))
-                        {
-                            double? score;
-                            entityScore.TryGetValue(key.Current, out score);
-                            int rating = 0;
-                            if (score > 0.5)
-                                rating = 1;
-
-                            Debug.Print($"{key.Current.Entity} ---- {rating}");
-
-                            //insert = command.InsertPrferencesActor(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetActorIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
-
-                        }
-                        if (key.Current.Type.Equals("director"))
-                        {
-                            double? score;
-                            entityScore.TryGetValue(key.Current, out score);
-                            int rating = 0;
-                            if (score > 0.5)
-                                rating = 1;
-
-                            Debug.Print($"{key.Current.Entity} ---- {rating}");
-                            //insert = command.InsertPreferencesDirector(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetDirectorIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
-                        }
-                        if (key.Current.Type.Equals("genre"))
-                        {
-                            double? score;
-                            entityScore.TryGetValue(key.Current, out score);
-                            int rating = 0;
-                            if (score > 0.5)
-                                rating = 1;
-
-                            Debug.Print($"{key.Current.Entity} ---- {rating}");
-                            //insert = command.InsertPrferencesGenre(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetGenreIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
-                        }
-                        key.Dispose();
-                    }
-                    db.CloseConnection();
-                    if (insert)
-                        await context.PostAsync($"I understand what you like! Thank you!");
                     else
-                        await context.PostAsync($"The preference for this entity is already taken!");
-
-                }
-                else
-                {
-                    await context.PostAsync($"I don't understand who you say! Can you repeat please?");
-                }
+                    {
+                        await context.PostAsync("I don't understand who you say! Can you repeat please?");
+                    }
+                }else
+                    await context.PostAsync("Respond to the all question please");
 
             }
+            else
+                await context.PostAsync("Rude! Say hello!");
 
 
             context.Wait(MessageReceived);
@@ -218,9 +211,18 @@ namespace Microsoft.Bot.Sample.LuisBot
         {
             if (firstAcces)
             {
-                //si avvierà la raccomandazione
-                await context.PostAsync($"user find film ");
+                if (setPreferencesClose)
+                {
+                    //si avvierà la raccomandazione
+                    await context.PostAsync($"user find film ");
+                }
+                else
+                {
+                    await context.PostAsync("Respond to the all question please!");
+                }
+
             }
+            await context.PostAsync("Rude! Say Hello!");
             context.Wait(MessageReceived);
         }
 
@@ -242,5 +244,105 @@ namespace Microsoft.Bot.Sample.LuisBot
                                     $"\nRemember to always be kind and to greet as soon as you arrive and when you go away!");
             context.Wait(MessageReceived);
         }
+
+        [LuisIntent("SelectTypeLike")]
+        public async Task SelectTypeLikeIntent(IDialogContext context, LuisResult result) {
+            Dictionary<EntityRecommendation, List<EntityRecommendation>>.Enumerator entity = entitiesPreferences.GetEnumerator();
+
+            Dictionary<EntityRecommendation, List<EntityRecommendation>>.KeyCollection keys = entitiesPreferences.Keys;
+            Dictionary<EntityRecommendation, List<EntityRecommendation>>.KeyCollection.Enumerator keyEnumerator = keys.GetEnumerator();
+            if (setPreferencesClose == false)
+            {
+                if (entitiesPreferences.Count > 1)
+                {
+                    while (keyEnumerator.MoveNext())
+                    {
+
+                        IEnumerator<EntityRecommendation> resEnumerator = result.Entities.GetEnumerator();// si suppone che ci sarà sempre e sola una entità
+
+                        while (resEnumerator.MoveNext())
+                        {
+                            if (resEnumerator.Current.Entity.Equals(keyEnumerator.Current.Entity) && !valuetedEntities.Contains(keyEnumerator.Current))
+                            {
+                                //get type
+                                List<EntityRecommendation> entityAndMultipleTypeList;
+
+                                entitiesPreferences.TryGetValue(keyEnumerator.Current, out entityAndMultipleTypeList);
+
+                                List<EntityRecommendation>.Enumerator entityAndTypeEnumerator = entityAndMultipleTypeList.GetEnumerator();
+                                Dictionary<EntityRecommendation, string> entityType = new Dictionary<EntityRecommendation, string>();
+                                while (entityAndTypeEnumerator.MoveNext())
+                                {
+                                    if (result.Query.ToLower().Contains(entityAndTypeEnumerator.Current.Type.ToLower()))
+                                    {
+                                        entityType.Add(keyEnumerator.Current, entityAndTypeEnumerator.Current.Type.ToLower());
+                                    }
+                                }
+
+                                //set preferences
+                                Debug.Print("Più entità multiple");
+                                Dictionary<EntityRecommendation, string>.Enumerator t = entityType.GetEnumerator();
+                                while (t.MoveNext())
+                                {
+                                    Debug.Print($"{t.Current.Key} with type {t.Current.Value}");
+                                }
+
+                                valuetedEntities.Add(keyEnumerator.Current);
+                            }
+
+                        }
+                    }
+                }
+                else
+                {
+
+                    IEnumerator<EntityRecommendation> resEnumerator = result.Entities.GetEnumerator();
+
+                    while (resEnumerator.MoveNext())
+                    {
+                        if (resEnumerator.Current.Entity.Equals(keyEnumerator.Current.Entity) && !valuetedEntities.Contains(keyEnumerator.Current))
+                        {
+                            //get type
+                            List<EntityRecommendation> entityAndMultipleTypeList;
+
+                            entitiesPreferences.TryGetValue(keyEnumerator.Current, out entityAndMultipleTypeList);
+
+                            List<EntityRecommendation>.Enumerator entityAndTypeEnumerator = entityAndMultipleTypeList.GetEnumerator();
+                            Dictionary<EntityRecommendation, string> entityType = new Dictionary<EntityRecommendation, string>();
+                            while (entityAndTypeEnumerator.MoveNext())
+                            {
+                                if (result.Query.ToLower().Contains(entityAndTypeEnumerator.Current.Type.ToLower()))
+                                {
+                                    entityType.Add(keyEnumerator.Current, entityAndTypeEnumerator.Current.Type.ToLower());
+                                }
+                            }
+
+                            //set preferences
+                            Debug.Print("Solo un entità multipla");
+                            Dictionary<EntityRecommendation, string>.Enumerator t = entityType.GetEnumerator();
+                            while (t.MoveNext()) {
+                                Debug.Print($"{t.Current.Key} with type {t.Current.Value}");
+                            }
+
+                            valuetedEntities.Add(keyEnumerator.Current);
+                        }
+
+                    }
+                }
+                if (valuetedEntities.Count == entitiesPreferences.Count)
+                {
+                    setPreferencesClose = true;
+                    await context.PostAsync($"I understand what you like thank you!");
+                }
+            }
+        }
+
+        private void SetPreferences(LuisResult result) {
+
+            
+
+        }
+        
+ 
     }
 }
