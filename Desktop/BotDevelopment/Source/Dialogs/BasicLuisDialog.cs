@@ -28,6 +28,7 @@ namespace Microsoft.Bot.Sample.LuisBot
         private Dictionary<EntityRecommendation, List<string>> resultEntity = new Dictionary<EntityRecommendation, List<string>>();
         private Dictionary<EntityRecommendation, List<EntityRecommendation>> entitiesPreferences = new Dictionary<EntityRecommendation, List<EntityRecommendation>>();
         private List<EntityRecommendation> valuetedEntities = new List<EntityRecommendation>();
+        private List<string> typeCattured = new List<string>();
 
         public BasicLuisDialog(Activity activity) : base(new LuisService(new LuisModelAttribute(
             ConfigurationManager.AppSettings["LuisAppId"],
@@ -144,59 +145,72 @@ namespace Microsoft.Bot.Sample.LuisBot
                         List<string> examinedKeys = new List<string>();
 
                         List<EntityRecommendation> resultEntityMultipleType = new List<EntityRecommendation>();
-
-                        while (key.MoveNext())
+                        try
                         {
-                            if (!examinedKeys.Contains(key.Current.Entity))
+                            while (key.MoveNext())
                             {
-                                resultEntityMultipleType = copyEntity.FindAll(x => x.Entity.Equals(key.Current.Entity));
-                                examinedKeys.Add(key.Current.Entity);
-                            }                          
-                            List<EntityRecommendation>.Enumerator enu = resultEntityMultipleType.GetEnumerator();
-
-                            if (resultEntityMultipleType.Count == 1)
-                            {
-                                //set preferences into database
-                               
-                                await context.PostAsync($"I understand what you like {key.Current.Entity}! Thank you!");
-                                entityScore.Clear();
-                                valuetedEntities.Clear();
-                                entitiesPreferences.Clear();
-                            }                         
-                                
-                            if (resultEntityMultipleType.Count > 1)
-                            {                               
-                                string question = string.Empty;
-                                int i = 1;
-
-                                while (enu.MoveNext())
+                                if (!examinedKeys.Contains(key.Current.Entity))
                                 {
-                                    if (i == 1) { 
-                                        question = $"{enu.Current.Entity} as ";
-                                        if (!entitiesPreferences.ContainsKey(enu.Current))
+                                    resultEntityMultipleType = copyEntity.FindAll(x => x.Entity.Equals(key.Current.Entity));
+                                    examinedKeys.Add(key.Current.Entity);
+                                }
+                                List<EntityRecommendation>.Enumerator enu = resultEntityMultipleType.GetEnumerator();
+
+                                if (resultEntityMultipleType.Count == 1)
+                                {
+                                    //set preferences into database
+
+                                    await context.PostAsync($"I understand what you like {key.Current.Entity}! Thank you!");
+
+                                    entityScore.Clear();
+                                    valuetedEntities.Clear();
+                                    entitiesPreferences.Clear();
+                                    resultEntityMultipleType.Clear();
+
+                                }
+
+                                if (resultEntityMultipleType.Count > 1)
+                                {
+                                    string question = string.Empty;
+                                    int i = 1;
+
+                                    while (enu.MoveNext())
+                                    {
+                                        if (i == 1)
                                         {
-                                            List<EntityRecommendation> copy = new List<EntityRecommendation>(resultEntityMultipleType);
-                                            entitiesPreferences.Add(enu.Current, copy);
+                                            question = $"{enu.Current.Entity} as ";
+                                            if (!entitiesPreferences.ContainsKey(enu.Current))
+                                            {
+                                                List<EntityRecommendation> copy = new List<EntityRecommendation>(resultEntityMultipleType);
+                                                entitiesPreferences.Add(enu.Current, copy);
+                                            }
                                         }
+
+                                        if (i < resultEntityMultipleType.Count && i > 0 && !question.Contains(enu.Current.Type))
+                                            question += enu.Current.Type + " or ";
+
+                                        if (i == resultEntityMultipleType.Count && !question.Contains(enu.Current.Type))
+                                            question += enu.Current.Type;
+                                        if (i == resultEntityMultipleType.Count)
+                                            question += "?";
+                                        i++;
                                     }
 
-                                    if (i < resultEntityMultipleType.Count && i > 0)
-                                        question += enu.Current.Type + " or ";
-
-                                    if (i == resultEntityMultipleType.Count)
-                                        question += enu.Current.Type + " ? ";
-                                    i++;
+                                    await context.PostAsync(question);
+                                    setPreferencesClose = false;
                                 }
-                                   
-                                await context.PostAsync(question);
-                                setPreferencesClose = false;
-                            }
 
-                            List<EntityRecommendation>.Enumerator o = resultEntityMultipleType.GetEnumerator();
-                            while (o.MoveNext()) {
-                                Debug.Print(o.Current.Entity + " " + o.Current.Type);
+                                List<EntityRecommendation>.Enumerator o = resultEntityMultipleType.GetEnumerator();
+                                while (o.MoveNext())
+                                {
+                                    Debug.Print(o.Current.Entity + " " + o.Current.Type);
+                                }
+                                resultEntityMultipleType.Clear();
                             }
-                            resultEntityMultipleType.Clear();                      
+                           
+                        }
+                        catch (Exception e) {
+                            Debug.Print(e.Message);//questa eccezione mi serve per forzare l'uscita dal ciclo 
                         }
                     }
                     else
@@ -253,6 +267,7 @@ namespace Microsoft.Bot.Sample.LuisBot
             context.Wait(MessageReceived);
         }
 
+        //si potrebbe fare qualche miglioria a questo metodo, ma il suo dovere lo fa bisogna comunque far capire all'utente come comportarsi!
         [LuisIntent("SelectTypeLike")]
         public async Task SelectTypeLikeIntent(IDialogContext context, LuisResult result) {
 
@@ -267,6 +282,7 @@ namespace Microsoft.Bot.Sample.LuisBot
                     if (entitiesPreferences.Count > 1)
                     {
                         bool foundEntity = false;
+                        
                         while (prefEnum.MoveNext())
                         {
                             LinkedList<string>.Enumerator sentencesEnumerator = detectedSentences.GetEnumerator();
@@ -279,12 +295,14 @@ namespace Microsoft.Bot.Sample.LuisBot
                                     resultEntity.Add(prefEnum.Current.Key, new List<string>());
                                     List<EntityRecommendation>.Enumerator typeEnum = prefEnum.Current.Value.GetEnumerator();
                                     bool foundAtMostOneType = false;
-                                    while (typeEnum.MoveNext())
+                                    
+                                    while (typeEnum.MoveNext() && foundAtMostOneType==false)
                                     {
 
-                                        if (sentencesEnumerator.Current.Contains(typeEnum.Current.Type))
+                                        if (sentencesEnumerator.Current.Contains(typeEnum.Current.Type) && !typeCattured.Contains(typeEnum.Current.Type))
                                         {
                                             foundAtMostOneType = true;
+                                            typeCattured.Add(typeEnum.Current.Type);
                                             if (!valuetedEntities.Contains(prefEnum.Current.Key))
                                                 valuetedEntities.Add(prefEnum.Current.Key);
                                             Dictionary<EntityRecommendation, List<string>>.Enumerator resultEnum = resultEntity.GetEnumerator();
@@ -349,21 +367,25 @@ namespace Microsoft.Bot.Sample.LuisBot
                     entityScore.Clear();
                     valuetedEntities.Clear();
                     entitiesPreferences.Clear();
-                    await context.PostAsync($"I understand what you like thank you!");
-
+                    typeCattured.Clear();
+                    
+                    string understandLike = "I understand that you have evaluated ";
                     Dictionary<EntityRecommendation, List<string>>.Enumerator enumerator = resultEntity.GetEnumerator();
                     while (enumerator.MoveNext())
                     {
                         Debug.Print($"Entità: {enumerator.Current.Key.Entity} con tipi: ");
+                        understandLike += enumerator.Current.Key.Entity + "with type ";
                         List<string>.Enumerator enumerator2 = enumerator.Current.Value.GetEnumerator();
                         while (enumerator2.MoveNext())
                         {
+                            understandLike += enumerator2.Current + " ";
                             Debug.Print($"{enumerator2.Current}");
                         }
                         Debug.Print("\n\n\n");
+                        understandLike += " and ";
                     }
 
-
+                    await context.PostAsync($"{understandLike}, thank you!");
                     resultEntity.Clear();
                 }
             }
