@@ -259,46 +259,54 @@ namespace Microsoft.Bot.Sample.LuisBot
             Dictionary<EntityRecommendation, List<EntityRecommendation>>.Enumerator prefEnum = entitiesPreferences.GetEnumerator();
             if (setPreferencesClose == false)
             {
+                LinkedList<string> detectedSentences = await ProcessText.InvokeRequestResponseService(result.Query);
                 try
                 {
+                    
+                                           
                     if (entitiesPreferences.Count > 1)
                     {
                         bool foundEntity = false;
                         while (prefEnum.MoveNext())
                         {
+                            LinkedList<string>.Enumerator sentencesEnumerator = detectedSentences.GetEnumerator();
+                            while (sentencesEnumerator.MoveNext())
+                            {
+                                if (sentencesEnumerator.Current.Contains(prefEnum.Current.Key.Entity))
+                                {// se è presente l'entità
 
-                            if (result.Query.Contains(prefEnum.Current.Key.Entity))
-                            {// se è presente l'entità
-                                foundEntity = true;
-                                resultEntity.Add(prefEnum.Current.Key, new List<string>());
-                                List<EntityRecommendation>.Enumerator typeEnum = prefEnum.Current.Value.GetEnumerator();
-                                bool foundAtMostOneType = false;
-                                while (typeEnum.MoveNext())
-                                {
-
-                                    if (result.Query.Contains(typeEnum.Current.Type))
+                                    foundEntity = true;
+                                    resultEntity.Add(prefEnum.Current.Key, new List<string>());
+                                    List<EntityRecommendation>.Enumerator typeEnum = prefEnum.Current.Value.GetEnumerator();
+                                    bool foundAtMostOneType = false;
+                                    while (typeEnum.MoveNext())
                                     {
-                                        foundAtMostOneType = true;
-                                        if (!valuetedEntities.Contains(prefEnum.Current.Key))
-                                            valuetedEntities.Add(prefEnum.Current.Key);
-                                        Dictionary<EntityRecommendation, List<string>>.Enumerator resultEnum = resultEntity.GetEnumerator();
-                                        while (resultEnum.MoveNext())
+
+                                        if (sentencesEnumerator.Current.Contains(typeEnum.Current.Type))
                                         {
-                                            if (resultEnum.Current.Key.Equals(prefEnum.Current.Key))
+                                            foundAtMostOneType = true;
+                                            if (!valuetedEntities.Contains(prefEnum.Current.Key))
+                                                valuetedEntities.Add(prefEnum.Current.Key);
+                                            Dictionary<EntityRecommendation, List<string>>.Enumerator resultEnum = resultEntity.GetEnumerator();
+                                            while (resultEnum.MoveNext())
                                             {
-                                                resultEnum.Current.Value.Add(typeEnum.Current.Type);
+                                                if (resultEnum.Current.Key.Equals(prefEnum.Current.Key))
+                                                {
+                                                    resultEnum.Current.Value.Add(typeEnum.Current.Type);
+                                                }
                                             }
                                         }
-                                    }                                   
+                                    }
+                                    if (foundAtMostOneType == false)
+                                        await context.PostAsync($"Not type present! Repeat because I need to know please!");
                                 }
-                                if (foundAtMostOneType == false)
-                                    await context.PostAsync($"Not type present! Repeat because I need to know please!");
-                            }                           
-                            
+                            }
+
                         }
-                        if(foundEntity == false)
+                        if (foundEntity == false)
                             await context.PostAsync($"No entity is present! Repeat because I need to know!");
                     }
+                    
                     if (entitiesPreferences.Count == 1)
                     {
                         while (prefEnum.MoveNext())
@@ -311,7 +319,7 @@ namespace Microsoft.Bot.Sample.LuisBot
                                 if (result.Query.Contains(typeEnum.Current.Type))
                                 {
                                     found = true;
-                                    if(!valuetedEntities.Contains(prefEnum.Current.Key))
+                                    if (!valuetedEntities.Contains(prefEnum.Current.Key))
                                         valuetedEntities.Add(prefEnum.Current.Key);
                                     Dictionary<EntityRecommendation, List<string>>.Enumerator resultEnum = resultEntity.GetEnumerator();
                                     while (resultEnum.MoveNext())
@@ -321,14 +329,15 @@ namespace Microsoft.Bot.Sample.LuisBot
                                             resultEnum.Current.Value.Add(typeEnum.Current.Type);
                                         }
                                     }
-                                }                                                            
+                                }
                             }
                             if (found == false)
                                 await context.PostAsync($"Not type present! Repeat because I need to know please!");
                         }
                     }
                 }
-                catch (Exception e ) {
+                catch (Exception e)
+                {
                     Debug.Print($"{e.Message}");
                 }
 
@@ -358,6 +367,8 @@ namespace Microsoft.Bot.Sample.LuisBot
                     resultEntity.Clear();
                 }
             }
+            else
+                await context.PostAsync("Tell the entity what you like with its type one at time! Thank you!");
             
         }
 
