@@ -23,7 +23,7 @@ namespace LuisBot.DatabasesConnection
                 access = new DbAccess();
                 connection = new SqlConnection();
                 connection.ConnectionString = "Server=tcp:dbmovieserver.database.windows.net,1433;Initial Catalog=dbmovie;Persist Security Info=False;User ID=fedelesimonedefeo;Password=Tesidefeo18;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
-                //sostituire la connection string
+              
             }
 
             return access;

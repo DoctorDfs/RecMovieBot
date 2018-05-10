@@ -10,7 +10,7 @@ using LuisBot.ProcessTextRequest;
 using System.Diagnostics;
 using System.Collections.Generic;
 using LuisBot.DatabasesConnection;
-using LuisBot.CommandPattern;
+using RecommenderRequest;
 
 namespace Microsoft.Bot.Sample.LuisBot
 {
@@ -158,15 +158,18 @@ namespace Microsoft.Bot.Sample.LuisBot
 
                                 if (resultEntityMultipleType.Count == 1)
                                 {
-                                    //set preferences into database
 
-                                    await context.PostAsync($"I understand what you like {key.Current.Entity}! Thank you!");
+                                    //si potrebbe aggiungere una richiesta di conferma di quello che il bot ha capito
+                                    //spostare nel metodo di conferma
+                                    InsertData.InsertIntoDbVlutation(entityScore,null,convID);
+
+                                    await context.PostAsync($"I understand what you like {key.Current.Entity}! Confirm ?");
 
                                     entityScore.Clear();
                                     valuetedEntities.Clear();
                                     entitiesPreferences.Clear();
                                     resultEntityMultipleType.Clear();
-
+                                    typeCattured.Clear();
                                 }
 
                                 if (resultEntityMultipleType.Count > 1)
@@ -234,8 +237,8 @@ namespace Microsoft.Bot.Sample.LuisBot
             {
                 if (setPreferencesClose)
                 {
-                    //si avvierà la raccomandazione
-                    await context.PostAsync($"user find film ");
+                    
+                    await context.PostAsync($"{Recommendation.InvokeRequestResponseRecommendationService(1)}");
                 }
                 else
                 {
@@ -277,8 +280,7 @@ namespace Microsoft.Bot.Sample.LuisBot
                 LinkedList<string> detectedSentences = await ProcessText.InvokeRequestResponseService(result.Query);
                 try
                 {
-                    
-                                           
+                                                            
                     if (entitiesPreferences.Count > 1)
                     {
                         bool foundEntity = false;
@@ -313,12 +315,15 @@ namespace Microsoft.Bot.Sample.LuisBot
                                                     resultEnum.Current.Value.Add(typeEnum.Current.Type);
                                                 }
                                             }
+                                            resultEnum.Dispose();
                                         }
                                     }
+                                    typeEnum.Dispose();
                                     if (foundAtMostOneType == false)
                                         await context.PostAsync($"Not type present! Repeat because I need to know please!");
                                 }
                             }
+                            sentencesEnumerator.Dispose();
 
                         }
                         if (foundEntity == false)
@@ -334,9 +339,10 @@ namespace Microsoft.Bot.Sample.LuisBot
                             bool found = false;
                             while (typeEnum.MoveNext())
                             {
-                                if (result.Query.Contains(typeEnum.Current.Type))
+                                if (result.Query.Contains(typeEnum.Current.Type) && !typeCattured.Contains(typeEnum.Current.Type))
                                 {
                                     found = true;
+                                    typeCattured.Add(typeEnum.Current.Type);
                                     if (!valuetedEntities.Contains(prefEnum.Current.Key))
                                         valuetedEntities.Add(prefEnum.Current.Key);
                                     Dictionary<EntityRecommendation, List<string>>.Enumerator resultEnum = resultEntity.GetEnumerator();
@@ -347,11 +353,14 @@ namespace Microsoft.Bot.Sample.LuisBot
                                             resultEnum.Current.Value.Add(typeEnum.Current.Type);
                                         }
                                     }
+                                    resultEnum.Dispose();
                                 }
                             }
+                            typeEnum.Dispose();
                             if (found == false)
                                 await context.PostAsync($"Not type present! Repeat because I need to know please!");
                         }
+                        prefEnum.Dispose();
                     }
                 }
                 catch (Exception e)
@@ -363,6 +372,9 @@ namespace Microsoft.Bot.Sample.LuisBot
 
                 if (valuetedEntities.Count == entitiesPreferences.Count) // se sono state valutate tutte le entità
                 {
+                    //spostare nel metodo di conferma
+                    InsertData.InsertIntoDbVlutation(entityScore, resultEntity, convID);
+
                     setPreferencesClose = true;
                     entityScore.Clear();
                     valuetedEntities.Clear();
@@ -371,21 +383,26 @@ namespace Microsoft.Bot.Sample.LuisBot
                     
                     string understandLike = "I understand that you have evaluated ";
                     Dictionary<EntityRecommendation, List<string>>.Enumerator enumerator = resultEntity.GetEnumerator();
+                    int i = 1;
                     while (enumerator.MoveNext())
                     {
                         Debug.Print($"Entità: {enumerator.Current.Key.Entity} con tipi: ");
                         understandLike += enumerator.Current.Key.Entity + "with type ";
                         List<string>.Enumerator enumerator2 = enumerator.Current.Value.GetEnumerator();
+                       
                         while (enumerator2.MoveNext())
                         {
                             understandLike += enumerator2.Current + " ";
                             Debug.Print($"{enumerator2.Current}");
                         }
+                        enumerator2.Dispose();
                         Debug.Print("\n\n\n");
-                        understandLike += " and ";
+                        if(i!=resultEntity.Count)
+                            understandLike += " and ";
+                        i++;
                     }
-
-                    await context.PostAsync($"{understandLike}, thank you!");
+                    enumerator.Dispose();
+                    await context.PostAsync($"{understandLike}, Confirm ?");
                     resultEntity.Clear();
                 }
             }
