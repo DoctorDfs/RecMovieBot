@@ -13,9 +13,7 @@ namespace LuisBot.DatabasesConnection
 
         public static bool InsertIntoDbVlutation(Dictionary<EntityRecommendation, double?> entityScore, Dictionary<EntityRecommendation, List<string>> entityType, string convID) {
             DbAccess db = DbAccess.GetInstanceOfDbAccess();
-            //db.OpenConnection();
-
-
+            db.OpenConnection();
 
             bool insert = true;
 
@@ -49,16 +47,16 @@ namespace LuisBot.DatabasesConnection
 
                                 switch (enumList.Current) {
                                     case "movie": 
-                                        //insert = command.InsertPreferencesMovie(Convert.ToInt32(command.GetIdUserFromIdChat(convID,db.GetConnection())),Convert.ToInt32(command.GetMovieIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
+                                        insert = command.InsertPreferencesMovie(Convert.ToInt32(command.GetIdUserFromIdChat(convID,db.GetConnection())),Convert.ToInt32(command.GetMovieIdFromName(entityEnumerator.Current.Key.Entity, db.GetConnection())),rating,db.GetConnection());
                                         break;
                                     case "actor": 
-                                        //insert = command.InsertPrferencesActor(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetActorIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
+                                        insert = command.InsertPrferencesActor(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetActorIdFromName(entityEnumerator.Current.Key.Entity, db.GetConnection())),rating,db.GetConnection());
                                         break;
                                     case "director": 
-                                        //insert = command.InsertPreferencesDirector(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetDirectorIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
+                                        insert = command.InsertPreferencesDirector(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetDirectorIdFromName(entityEnumerator.Current.Key.Entity, db.GetConnection())),rating,db.GetConnection());
                                         break;
                                     case "genre": 
-                                        //insert = command.InsertPrferencesGenre(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetGenreIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
+                                        insert = command.InsertPrferencesGenre(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetGenreIdFromName(entityEnumerator.Current.Key.Entity, db.GetConnection())),rating,db.GetConnection());
                                         break;
                                 }                             
                             }
@@ -85,16 +83,16 @@ namespace LuisBot.DatabasesConnection
                     switch (entityEnumerator.Current.Key.Type)
                     {
                         case "movie":
-                            //insert = command.InsertPreferencesMovie(Convert.ToInt32(command.GetIdUserFromIdChat(convID,db.GetConnection())),Convert.ToInt32(command.GetMovieIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
+                            insert = command.InsertPreferencesMovie(Convert.ToInt32(command.GetIdUserFromIdChat(convID,db.GetConnection())),Convert.ToInt32(command.GetMovieIdFromName(entityEnumerator.Current.Key.Entity, db.GetConnection())),rating,db.GetConnection());
                             break;
                         case "actor":
-                            //insert = command.InsertPrferencesActor(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetActorIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
+                            insert = command.InsertPrferencesActor(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetActorIdFromName(entityEnumerator.Current.Key.Entity, db.GetConnection())),rating,db.GetConnection());
                             break;
                         case "director":
-                            //insert = command.InsertPreferencesDirector(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetDirectorIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
+                            insert = command.InsertPreferencesDirector(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetDirectorIdFromName(entityEnumerator.Current.Key.Entity, db.GetConnection())),rating,db.GetConnection());
                             break;
                         case "genre":
-                            //insert = command.InsertPrferencesGenre(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetGenreIdFromName(key.Current.Entity,db.GetConnection())),rating,db.GetConnection());
+                            insert = command.InsertPrferencesGenre(Convert.ToInt32(command.GetIdUserFromIdChat(convID, db.GetConnection())), Convert.ToInt32(command.GetGenreIdFromName(entityEnumerator.Current.Key.Entity, db.GetConnection())),rating,db.GetConnection());
                             break;
                     }
 
@@ -102,7 +100,7 @@ namespace LuisBot.DatabasesConnection
                 entityEnumerator.Dispose();
             }
 
-            //db.CloseConnection();
+            db.CloseConnection();
             return insert;
         }
     }

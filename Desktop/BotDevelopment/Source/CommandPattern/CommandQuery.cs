@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
 using System.Web;
 using LuisBot.CommandPattern;
@@ -84,6 +85,19 @@ namespace LuisBot.CommandPattern
             }
         }
 
+        public string GetMovieNameFromId(int id_movie, SqlConnection dbReference) {
+            try
+            {
+                return ReceiverQuery.GenericSelect($"select movie_title from movie where id_movie='{id_movie}'", dbReference);
+            }
+            catch (Exception e) {
+                Debug.Print(e.Message);
+                return null;
+            }
+
+        }
+
+
         public string GetMovieIdFromName(string movieName, SqlConnection dbReference) {
             
             try
@@ -93,7 +107,7 @@ namespace LuisBot.CommandPattern
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return null;
             }
             
@@ -108,7 +122,7 @@ namespace LuisBot.CommandPattern
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return null;
             }
         }
@@ -122,7 +136,7 @@ namespace LuisBot.CommandPattern
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return null;
             }
         }
@@ -135,7 +149,7 @@ namespace LuisBot.CommandPattern
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return null;
             }
         }
@@ -148,7 +162,7 @@ namespace LuisBot.CommandPattern
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return null;
             }
         }
