@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using LuisBot.DatabasesConnection;
 using RecommenderRequest;
 using LuisBot.CommandPattern;
+using System.Linq;
 
 namespace Microsoft.Bot.Sample.LuisBot
 {
@@ -240,8 +241,10 @@ namespace Microsoft.Bot.Sample.LuisBot
                 {
                     
                     string movie = await Recommendation.InvokeRequestResponseRecommendationService(convID);
-
-                    await context.PostAsync($"I suggest you: {movie}\nRemember evaluate after see it!");
+                    if (movie.Length == 0 || movie == null)
+                        await context.PostAsync("I did not understand what you like, tell me some other movie that you like!");
+                    else
+                        await context.PostAsync($"I suggest you: {movie}\nRemember evaluate after see it!");
                 }
                 else
                 {
@@ -374,46 +377,48 @@ namespace Microsoft.Bot.Sample.LuisBot
 
                 Debug.Print($"entità valutate: {valuetedEntities.Count} == entità da valutare: {entitiesPreferences.Count}");
 
-
-                string understandLike = "I understand that you ";
-                Dictionary<EntityRecommendation, List<string>>.Enumerator enumerator = resultEntity.GetEnumerator();
-                int i = 1;
-                while (enumerator.MoveNext())
+                if (valuetedEntities.Count > 0)
                 {
-                    Debug.Print($"Entità: {enumerator.Current.Key.Entity} con tipi: ");
-                    double? like = getSentimentByEntity(enumerator.Current.Key);
-                    if (like > 0.5)
-                        understandLike += "like ";
-                    if (like <= 0.5)
-                        understandLike += "dislike ";
-
-                    understandLike += enumerator.Current.Key.Entity + " with type ";
-                    List<string>.Enumerator enumerator2 = enumerator.Current.Value.GetEnumerator();
-
-                    while (enumerator2.MoveNext())
+                    string understandLike = "I understand that you ";
+                    Dictionary<EntityRecommendation, List<string>>.Enumerator enumerator = resultEntity.GetEnumerator();
+                    int i = 1;
+                    while (enumerator.MoveNext())
                     {
-                        understandLike += enumerator2.Current + " ";
-                        Debug.Print($"{enumerator2.Current}");
+                        Debug.Print($"Entità: {enumerator.Current.Key.Entity} con tipi: ");
+                        double? like = getSentimentByEntity(enumerator.Current.Key);
+                        if (like > 0.5)
+                            understandLike += "like ";
+                        if (like <= 0.5)
+                            understandLike += "dislike ";
+
+                        understandLike += enumerator.Current.Key.Entity + " with type ";
+                        List<string>.Enumerator enumerator2 = enumerator.Current.Value.GetEnumerator();
+
+                        while (enumerator2.MoveNext())
+                        {
+                            understandLike += enumerator2.Current + " ";
+                            Debug.Print($"{enumerator2.Current}");
+                        }
+                        enumerator2.Dispose();
+                        Debug.Print("\n\n\n");
+                        if (i != resultEntity.Count)
+                            understandLike += " and ";
+                        i++;
                     }
-                    enumerator2.Dispose();
-                    Debug.Print("\n\n\n");
-                    if (i != resultEntity.Count)
-                        understandLike += " and ";
-                    i++;
-                }
-                enumerator.Dispose();
-                await context.PostAsync($"{understandLike}");
-                
+                    enumerator.Dispose();
+                   
+                    if (valuetedEntities.Count == entitiesPreferences.Count) // se sono state valutate tutte le entità
+                    {
 
-                if (valuetedEntities.Count == entitiesPreferences.Count) // se sono state valutate tutte le entità
-                {
-                  
-                    await context.PostAsync($"{understandLike}, Confirm ? Reponde with yes or no!");
-                    await context.PostAsync("If the type of entity is wrong type 'Type wrong' and repeat again else type 'NO' and i will ask you where i wrong!");
+                        await context.PostAsync($"{understandLike}, Confirm ? Reponde with yes or no!");
+                        await context.PostAsync("If the type of entity is wrong type 'Type wrong' and repeat again else type 'NO' and i will ask you where i wrong!");
 
-                    setPreferencesClose = true;
-                    confirmWait = true;
+                        setPreferencesClose = true;
+                        confirmWait = true;
+                    }else
+                        await context.PostAsync($"{understandLike}");
                 }
+               
             }
             else
                 await context.PostAsync("Tell the entity what you like with its type one at time! Thank you!");
@@ -464,19 +469,23 @@ namespace Microsoft.Bot.Sample.LuisBot
                         Dictionary<EntityRecommendation, double?>.Enumerator e = entityScore.GetEnumerator();
                         string understand = "I understand you ";
                         while (e.MoveNext()) {
+                        if (!understand.Contains(e.Current.Key.Entity))
+                        {
                             if (e.Current.Value > 0.5)
                                 understand += "like ";
                             else
                                 understand += "dislike ";
+
                             understand += e.Current.Key.Entity;
 
                             await context.PostAsync(understand);
 
-                            understand = string.Empty;                       
+                            understand = string.Empty;
                         }
+                    }
 
                         changePreferenceUnderstand = true;
-                        await context.PostAsync("Tell me what entity's preference wrong typing 'change [name entity] one at time please!'");
+                        await context.PostAsync("Tell me what entity's preference wrong typing     'change [name entity]'   one at time please!'");
                     }
 
                     confirmWait = false;
@@ -497,25 +506,22 @@ namespace Microsoft.Bot.Sample.LuisBot
                     IList<EntityRecommendation> listEntity = result.Entities;
 
                     IEnumerator<EntityRecommendation> e = listEntity.GetEnumerator();
-                    while (e.MoveNext())
+                    while (e.MoveNext() && !changedEntities.Contains(e.Current.Entity))
                     {
-                        Dictionary<EntityRecommendation, double?>.Enumerator es = entityScore.GetEnumerator();
-                        while (es.MoveNext())
+
+                        foreach (EntityRecommendation entity in entityScore.Keys.ToList())
                         {
-                            if (e.Current.Entity.Equals(es.Current.Key.Entity))
+                            if (e.Current.Entity.Equals(entity.Entity))
                             {
-                                EntityRecommendation newEntity = new EntityRecommendation(es.Current.Key.Type, es.Current.Key.Entity);
-                                
-                                if (es.Current.Value > 0.5)
-                                    entityScore.Add(newEntity, 0);
-                                else
-                                    entityScore.Add(newEntity, 1);
 
-                                changedEntities.Add(es.Current.Key.Entity);
-
-                                entityScore.Remove(es.Current.Key);
+                                Debug.Print(e.Current.Entity + " ----- " + entity.Entity + "con precedente score= {0}", entityScore[entity]);
+                                entityScore[entity] = 1 - entityScore[entity];
+                                Debug.Print("score attuale = {0}", entityScore[entity]);                                  
+                                changedEntities.Add(entity.Entity);
                             }
                         }
+                        
+
                     }
                 }
                 else
@@ -524,8 +530,7 @@ namespace Microsoft.Bot.Sample.LuisBot
                     {
                         changePreferenceUnderstand = false;
                         confirmWait = true;
-
-                   
+                        changedEntities.Clear();                  
                     }
                     else
                         await context.PostAsync("I don't understand any entity! ");
@@ -548,22 +553,26 @@ namespace Microsoft.Bot.Sample.LuisBot
                     string understand = "I understand you ";
                     while (e.MoveNext())
                     {
-                        if (e.Current.Value > 0.5)
-                            understand += "like ";
-                        else
-                            understand += "dislike ";
-                        understand += e.Current.Key.Entity;
+                        if (!understand.Contains(e.Current.Key.Entity)) {
+                            if (e.Current.Value > 0.5)
+                                understand += "like ";
+                            else
+                                understand += "dislike ";
 
-                        await context.PostAsync(understand);
+                            understand += e.Current.Key.Entity;
 
-                        understand = string.Empty;
+                            await context.PostAsync(understand);
+
+                            understand = string.Empty;
+                        }
                     }
 
-                    understand += "Confirm ?";
+                    
 
                     changePreferenceUnderstand = false;
                     confirmWait = true;
-                    await context.PostAsync(understand);
+                    changedEntities.Clear();
+                    await context.PostAsync("Confirm ?");
                 }
                     
 
