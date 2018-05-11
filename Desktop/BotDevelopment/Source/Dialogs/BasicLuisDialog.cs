@@ -528,9 +528,31 @@ namespace Microsoft.Bot.Sample.LuisBot
                 {
                     if (result.Query.ToLower().Contains("i finished"))
                     {
+                        Dictionary<EntityRecommendation, double?>.Enumerator e = entityScore.GetEnumerator();
+                        string understand = "I understand you ";
+                        while (e.MoveNext())
+                        {
+                            if (!understand.Contains(e.Current.Key.Entity))
+                            {
+                                if (e.Current.Value > 0.5)
+                                    understand += "like ";
+                                else
+                                    understand += "dislike ";
+
+                                understand += e.Current.Key.Entity;
+
+                                await context.PostAsync(understand);
+
+                                understand = string.Empty;
+                            }
+
+
+                        }
+
                         changePreferenceUnderstand = false;
                         confirmWait = true;
-                        changedEntities.Clear();                  
+                        changedEntities.Clear();
+                        await context.PostAsync("Confirm ?");                                      
                     }
                     else
                         await context.PostAsync("I don't understand any entity! ");
@@ -565,14 +587,15 @@ namespace Microsoft.Bot.Sample.LuisBot
 
                             understand = string.Empty;
                         }
-                    }
 
-                    
+                        
+                    }
 
                     changePreferenceUnderstand = false;
                     confirmWait = true;
                     changedEntities.Clear();
                     await context.PostAsync("Confirm ?");
+
                 }
                     
 
