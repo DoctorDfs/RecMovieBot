@@ -506,21 +506,43 @@ namespace Microsoft.Bot.Sample.LuisBot
                     IList<EntityRecommendation> listEntity = result.Entities;
 
                     IEnumerator<EntityRecommendation> e = listEntity.GetEnumerator();
+
+                 
+
                     while (e.MoveNext() && !changedEntities.Contains(e.Current.Entity))
                     {
 
-                        foreach (EntityRecommendation entity in entityScore.Keys.ToList())
-                        {
-                            if (e.Current.Entity.Equals(entity.Entity))
-                            {
 
-                                Debug.Print(e.Current.Entity + " ----- " + entity.Entity + "con precedente score= {0}", entityScore[entity]);
-                                entityScore[entity] = 1 - entityScore[entity];
-                                Debug.Print("score attuale = {0}", entityScore[entity]);                                  
-                                changedEntities.Add(entity.Entity);
+                        bool found = false;
+
+                        Dictionary<EntityRecommendation, List<string>>.KeyCollection.Enumerator r = resultEntity.Keys.GetEnumerator();
+                        
+                        while (r.MoveNext() && found == false)// se l'entità digitata è presente
+                        {
+                            if (r.Current.Entity.Equals(e.Current.Entity)) { 
+                                found = true;
                             }
                         }
-                        
+
+
+
+
+                        if (found == true)
+                        {
+                            foreach (EntityRecommendation entity in entityScore.Keys.ToList())
+                            {
+                                if (e.Current.Entity.Equals(entity.Entity))
+                                {
+
+                                    Debug.Print(e.Current.Entity + " ----- " + entity.Entity + "con precedente score= {0}", entityScore[entity]);
+                                    entityScore[entity] = 1 - entityScore[entity];
+                                    Debug.Print("score attuale = {0}", entityScore[entity]);
+                                    changedEntities.Add(entity.Entity);
+                                }
+                            }
+                        }
+                        else
+                            await context.PostAsync($"Entity {e.Current.Entity} is not present in the valutation! Continue with other entities or type 'i finished'.");
 
                     }
                 }
