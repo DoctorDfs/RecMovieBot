@@ -1,14 +1,14 @@
-﻿
-using Microsoft.Azure.CognitiveServices.Language.TextAnalytics;
+﻿using Microsoft.Azure.CognitiveServices.Language.TextAnalytics;
 using Microsoft.Azure.CognitiveServices.Language.TextAnalytics.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace LuisBot.sentimentRecognizer
+namespace LuisBot.sentimentAnalyzer
 {
-    public static class SentimentRecognizer
+    public static class SentimentAnalyzer
     {
-        public static async Task<double?> GetSentiment(string inputText, string analyticsID) {
+        public static async Task<double?> GetSentiment(string inputText, string analyticsID)
+        {
             // Create a client.
 
             ITextAnalyticsAPI client = new TextAnalyticsAPI();

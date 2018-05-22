@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Diagnostics;
-using System.Linq;
-using System.Web;
-using LuisBot.CommandPattern;
+
+
 
 namespace LuisBot.CommandPattern
 {
@@ -14,13 +12,15 @@ namespace LuisBot.CommandPattern
         private CommandQuery() { }
 
 
-        public static CommandQuery GetInstanceCommandQuery() {
+        public static CommandQuery GetInstanceCommandQuery()
+        {
             if(instanceCommand == null)
                 instanceCommand = new CommandQuery();
 
             return instanceCommand;
         }
-        public bool InsertNewUser(string id_chat, SqlConnection dbReference) {
+        public bool InsertNewUser(string id_chat, SqlConnection dbReference)
+        {
             
             try
             {
@@ -28,12 +28,13 @@ namespace LuisBot.CommandPattern
                 return true;
             }
             catch (Exception e) {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return false;
             } 
         }
 
-        public bool InsertPreferencesMovie(int id_user, int id_movie, int rating, SqlConnection dbReference) {
+        public bool InsertPreferencesMovie(int id_user, int id_movie, int rating, SqlConnection dbReference)
+        {
             try
             {
                 ReceiverQuery.GenericInsertInto($"Insert into movie_rating(id_user,id_movie,rating)values('{id_user}',{id_movie},{rating})", dbReference);
@@ -41,12 +42,13 @@ namespace LuisBot.CommandPattern
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return false;
             }
         }
 
-        public bool InsertPrferencesActor(int id_user, int id_actor, int rating, SqlConnection dbReference) {
+        public bool InsertPrferencesActor(int id_user, int id_actor, int rating, SqlConnection dbReference)
+        {
             try
             {
                 ReceiverQuery.GenericInsertInto($"Insert into actor_rating(id_user,id_actor,rating)values('{id_user}',{id_actor},{rating})", dbReference);
@@ -54,12 +56,13 @@ namespace LuisBot.CommandPattern
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return false;
             }
         }
 
-        public bool InsertPrferencesGenre(int id_user, int id_genre, int rating, SqlConnection dbReference) {
+        public bool InsertPrferencesGenre(int id_user, int id_genre, int rating, SqlConnection dbReference)
+        {
             try
             {
                 ReceiverQuery.GenericInsertInto($"Insert into genre_rating(id_user,id_genre,rating)values('{id_user}',{id_genre},{rating})", dbReference);
@@ -67,12 +70,13 @@ namespace LuisBot.CommandPattern
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return false;
             }
         }
 
-        public bool InsertPreferencesDirector(int id_user, int id_director, int rating, SqlConnection dbReference) {
+        public bool InsertPreferencesDirector(int id_user, int id_director, int rating, SqlConnection dbReference)
+        {
             try
             {
                 ReceiverQuery.GenericInsertInto($"Insert into director_rating(id_user,id_director,rating)values('{id_user}',{id_director},{rating})", dbReference);
@@ -80,7 +84,7 @@ namespace LuisBot.CommandPattern
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Debug.Print(e.Message);
                 return false;
             }
         }

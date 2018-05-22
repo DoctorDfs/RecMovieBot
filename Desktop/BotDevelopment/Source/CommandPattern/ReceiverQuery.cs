@@ -1,17 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Data;
-using LuisBot.DatabasesConnection;
+
 
 namespace LuisBot.CommandPattern
 {
     public static class ReceiverQuery
     {
-        public static bool GenericInsertInto(string query, SqlConnection dbReference) {
+        public static bool GenericInsertInto(string query, SqlConnection dbReference)
+        {
           
 
             try
@@ -31,7 +29,8 @@ namespace LuisBot.CommandPattern
         }
 
         
-        public static string GenericSelect(string query, SqlConnection dbReferences) {
+        public static string GenericSelect(string query, SqlConnection dbReferences)
+        {
             string result = string.Empty;
             SqlCommand command;
             SqlDataReader reader;

@@ -19,7 +19,7 @@ namespace Microsoft.Bot.Sample.LuisBot
         /// </summary>
         /// <param name="activity"></param>
         /// 
-        private ConnectorClient connector;
+       
 
         [ResponseType(typeof(void))]
         public virtual async Task<HttpResponseMessage> Post([FromBody] Activity activity)
@@ -33,13 +33,7 @@ namespace Microsoft.Bot.Sample.LuisBot
                 }
                 catch (Exception e)
                 {
-                    if (activity.ChannelId == "emulator")
-                    {
-
-                        Activity response = activity.CreateReply(e.Message);
-                        connector = new ConnectorClient(new Uri(activity.ServiceUrl));
-                        await connector.Conversations.ReplyToActivityAsync(response);
-                    }
+                    Debug.Print(e.Message);
                 }
 
             }
@@ -59,14 +53,7 @@ namespace Microsoft.Bot.Sample.LuisBot
             }
             else if (message.Type == ActivityTypes.ConversationUpdate)
             {
-                if (message.Action == "add")
-                {
-                    var reply = message.CreateReply("WELCOME!!!");
-                    if (connector == null)
-                        connector = new ConnectorClient(new Uri(message.ServiceUrl));
-
-                    connector.Conversations.ReplyToActivityAsync(reply);
-                }
+                
             }
             else if (message.Type == ActivityTypes.ContactRelationUpdate)
             {

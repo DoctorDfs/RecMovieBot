@@ -195,7 +195,7 @@
     <Compile Include="ProcessTextRequest\ProcessText.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RecommenderRequest\Recommendation.cs" />
-    <Compile Include="sentimentRecognizer\SentimentRecognizer.cs" />
+    <Compile Include="sentimentAnalyzer\SentimentAnalyzer.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="packages.config" />

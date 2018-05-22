@@ -5,7 +5,7 @@ using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Luis;
 using Microsoft.Bot.Builder.Luis.Models;
 using Microsoft.Bot.Connector;
-using LuisBot.sentimentRecognizer;
+using LuisBot.sentimentAnalyzer;
 using LuisBot.ProcessTextRequest;
 using System.Diagnostics;
 using System.Collections.Generic;
@@ -129,7 +129,7 @@ namespace Microsoft.Bot.Sample.LuisBot
 
                         while (enumeratorSentence.MoveNext())
                         {
-                            double? score = await SentimentRecognizer.GetSentiment(enumeratorSentence.Current, Convert.ToString(j++));
+                            double? score = await SentimentAnalyzer.GetSentiment(enumeratorSentence.Current, Convert.ToString(j++));
                             //per ogni entità controllo se sia presente in questa frase
                             IEnumerator<EntityRecommendation> e = result.Entities.GetEnumerator();
                             while (e.MoveNext())
@@ -278,7 +278,8 @@ namespace Microsoft.Bot.Sample.LuisBot
 
         
         [LuisIntent("SelectTypeLike")]
-        public async Task SelectTypeLikeIntent(IDialogContext context, LuisResult result) {
+        public async Task SelectTypeLikeIntent(IDialogContext context, LuisResult result)
+        {
 
             Dictionary<EntityRecommendation, List<EntityRecommendation>>.Enumerator prefEnum = entitiesPreferences.GetEnumerator();
             if (setPreferencesClose == false && confirmWait == false && changePreferenceUnderstand == false)
@@ -428,7 +429,8 @@ namespace Microsoft.Bot.Sample.LuisBot
         }
 
         [LuisIntent("ConfirmPreferencesIntent")]
-        public async Task ConfirmPreferencesIntent(IDialogContext context, LuisResult result) {
+        public async Task ConfirmPreferencesIntent(IDialogContext context, LuisResult result)
+        {
             if (confirmWait == true && setPreferencesClose == true && changePreferenceUnderstand == false) {
 
                 if (result.Query.ToLower().Contains("yes"))
@@ -464,29 +466,30 @@ namespace Microsoft.Bot.Sample.LuisBot
                             resultEntity.Clear();
                     }else
 
-                    if (result.Query.ToLower().Contains("no")) {
-
-                        Dictionary<EntityRecommendation, double?>.Enumerator e = entityScore.GetEnumerator();
-                        string understand = "I understand you ";
-                        while (e.MoveNext()) {
-                        if (!understand.Contains(e.Current.Key.Entity))
+                        if (result.Query.ToLower().Contains("no"))
                         {
-                            if (e.Current.Value > 0.5)
-                                understand += "like ";
-                            else
-                                understand += "dislike ";
 
-                            understand += e.Current.Key.Entity;
+                            Dictionary<EntityRecommendation, double?>.Enumerator e = entityScore.GetEnumerator();
+                            string understand = "I understand you ";
+                            while (e.MoveNext()) {
+                                if (!understand.Contains(e.Current.Key.Entity))
+                                {
+                                    if (e.Current.Value > 0.5)
+                                        understand += "like ";
+                                    else
+                                        understand += "dislike ";
 
-                            await context.PostAsync(understand);
+                                    understand += e.Current.Key.Entity;
 
-                            understand = string.Empty;
+                                    await context.PostAsync(understand);
+
+                                    understand = string.Empty;
+                                }
+                            }
+
+                            changePreferenceUnderstand = true;
+                            await context.PostAsync("Tell me what entity's preference wrong typing     'change [name entity]'   one at time please!'");
                         }
-                    }
-
-                        changePreferenceUnderstand = true;
-                        await context.PostAsync("Tell me what entity's preference wrong typing     'change [name entity]'   one at time please!'");
-                    }
 
                     confirmWait = false;
 
@@ -499,7 +502,8 @@ namespace Microsoft.Bot.Sample.LuisBot
         }
 
         [LuisIntent("ChangePreferencesIntent")]
-        public async Task ChangePreferencesIntent(IDialogContext context, LuisResult result) {
+        public async Task ChangePreferencesIntent(IDialogContext context, LuisResult result)
+        {
             if (changePreferenceUnderstand == true) {
                 if (result.Entities.Count > 0)
                 {
@@ -523,9 +527,6 @@ namespace Microsoft.Bot.Sample.LuisBot
                                 found = true;
                             }
                         }
-
-
-
 
                         if (found == true)
                         {
@@ -584,12 +585,14 @@ namespace Microsoft.Bot.Sample.LuisBot
                
                 Dictionary<EntityRecommendation, List<string>>.KeyCollection.Enumerator re = resultEntity.Keys.GetEnumerator();
                
-                while (re.MoveNext() && equals == true) {
+                while (re.MoveNext() && equals == true)
+                {
                     if (!changedEntities.Contains(re.Current.Entity))
                         equals = false;
                 }
 
-                if (equals == true) {
+                if (equals == true)
+                {
              
                     await context.PostAsync("You changed all entitie");
 
@@ -597,7 +600,8 @@ namespace Microsoft.Bot.Sample.LuisBot
                     string understand = "I understand you ";
                     while (e.MoveNext())
                     {
-                        if (!understand.Contains(e.Current.Key.Entity)) {
+                        if (!understand.Contains(e.Current.Key.Entity))
+                        {
                             if (e.Current.Value > 0.5)
                                 understand += "like ";
                             else
@@ -624,10 +628,12 @@ namespace Microsoft.Bot.Sample.LuisBot
             }
         }
 
-        private double? getSentimentByEntity(EntityRecommendation entity) {
+        private double? getSentimentByEntity(EntityRecommendation entity)
+        {
 
             Dictionary<EntityRecommendation, double?>.Enumerator e = entityScore.GetEnumerator();
-            while (e.MoveNext()) {
+            while (e.MoveNext())
+            {
                 if (e.Current.Key.Entity.Equals(entity.Entity))
                 {
                     Debug.Print($"{e.Current.Key.Entity} --- {entity.Entity}");

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 using System.Data.SqlClient;
 using System.Diagnostics;
 
@@ -29,7 +26,8 @@ namespace LuisBot.DatabasesConnection
             return access;
         }
 
-        public bool OpenConnection() {
+        public bool OpenConnection()
+        {
             try
             {
                 connection.Open();
@@ -42,10 +40,12 @@ namespace LuisBot.DatabasesConnection
             }
         }
 
-        public bool CloseConnection() {
+        public bool CloseConnection()
+        {
             try
             {
-                if (connectionOpen) { 
+                if (connectionOpen)
+                { 
                     connection.Close();
                     connectionOpen = false;
                 }
@@ -56,14 +56,16 @@ namespace LuisBot.DatabasesConnection
             } 
         }
 
-        public SqlConnection GetConnection() {
+        public SqlConnection GetConnection()
+        {
             if (access != null)
                 return connection;
             else
                 return null;
         }
 
-        public bool ConnectionIsOpen() {
+        public bool ConnectionIsOpen()
+        {
             return connectionOpen;
         }
         

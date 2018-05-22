@@ -3,15 +3,14 @@ using Microsoft.Bot.Builder.Luis.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Web;
 
 namespace LuisBot.DatabasesConnection
 {
     public class InsertData
     {
 
-        public static bool InsertIntoDbVlutation(Dictionary<EntityRecommendation, double?> entityScore, Dictionary<EntityRecommendation, List<string>> entityType, string convID) {
+        public static bool InsertIntoDbVlutation(Dictionary<EntityRecommendation, double?> entityScore, Dictionary<EntityRecommendation, List<string>> entityType, string convID)
+        {
             DbAccess db = DbAccess.GetInstanceOfDbAccess();
             db.OpenConnection();
 
@@ -28,7 +27,7 @@ namespace LuisBot.DatabasesConnection
                     List<string> entityConsidered = new List<string>();
                     while (entityEnumerator.MoveNext())
                     {
-                        Debug.Print("Esterno");
+                        
                         if (key.Current.Key.Entity.Equals(entityEnumerator.Current.Key.Entity) && !entityConsidered.Contains(entityEnumerator.Current.Key.Entity))//quando trovo l'entità
                         {
                             
@@ -37,15 +36,15 @@ namespace LuisBot.DatabasesConnection
                             string type = string.Empty;
                             while (enumList.MoveNext())
                             {
-                                Debug.Print("Interno");
+                               
                                 int rating = 0;
                                 if (entityEnumerator.Current.Value > 0.5)
                                     rating = 1;
 
-                                Debug.Print("Inserimento nel DB delle preferenze con resultEntity");
-                                Debug.Print($"{entityEnumerator.Current.Key.Entity} ---- {enumList.Current} ---- {rating}");
+                               
 
-                                switch (enumList.Current) {
+                                switch (enumList.Current)
+                                {
                                     case "movie": 
                                         insert = command.InsertPreferencesMovie(Convert.ToInt32(command.GetIdUserFromIdChat(convID,db.GetConnection())),Convert.ToInt32(command.GetMovieIdFromName(entityEnumerator.Current.Key.Entity, db.GetConnection())),rating,db.GetConnection());
                                         break;
@@ -67,7 +66,8 @@ namespace LuisBot.DatabasesConnection
 
                 key.Dispose();
             }
-            else {
+            else
+            {
 
                 Dictionary<EntityRecommendation, double?>.Enumerator entityEnumerator = entityScore.GetEnumerator();
 
@@ -77,8 +77,7 @@ namespace LuisBot.DatabasesConnection
                     if (entityEnumerator.Current.Value > 0.5)
                         rating = 1;
 
-                    Debug.Print("Inserimento nel DB delle preferenze senza resultEntity");
-                    Debug.Print($"{entityEnumerator.Current.Key.Entity} ---- {entityEnumerator.Current.Key.Type} ---- {rating}");
+                  
 
                     switch (entityEnumerator.Current.Key.Type)
                     {
