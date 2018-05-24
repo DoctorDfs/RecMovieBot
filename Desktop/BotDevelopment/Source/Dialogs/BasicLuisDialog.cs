@@ -435,7 +435,7 @@ namespace Microsoft.Bot.Sample.LuisBot
 
                 if (result.Query.ToLower().Contains("yes"))
                 {
-                    InsertData.InsertIntoDbVlutation(entityScore, resultEntity, convID);
+                    string insert = InsertData.InsertIntoDbVlutation(entityScore, resultEntity, convID);
 
                     entityScore.Clear();
 
@@ -448,7 +448,13 @@ namespace Microsoft.Bot.Sample.LuisBot
                     if (resultEntity != null)
                         resultEntity.Clear();
 
-                    await context.PostAsync("Perfect, I Understand!");
+                    if (insert.Equals("ok"))
+                        await context.PostAsync("Perfect, I Understand!");
+                    else
+                    {                       
+                        await context.PostAsync($"You have already evalueted {insert}");
+                    }
+                        
                 }else
             
                     if (result.Query.ToLower().Contains("type wrong"))

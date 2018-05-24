@@ -9,19 +9,19 @@ namespace LuisBot.DatabasesConnection
     public class InsertData
     {
 
-        public static bool InsertIntoDbVlutation(Dictionary<EntityRecommendation, double?> entityScore, Dictionary<EntityRecommendation, List<string>> entityType, string convID)
+        public static string InsertIntoDbVlutation(Dictionary<EntityRecommendation, double?> entityScore, Dictionary<EntityRecommendation, List<string>> entityType, string convID)
         {
             DbAccess db = DbAccess.GetInstanceOfDbAccess();
             db.OpenConnection();
 
-            bool insert = true;
+            string insert = "ok";
 
             CommandQuery command = CommandQuery.GetInstanceCommandQuery();
             if (entityType != null)
             {
                 Dictionary<EntityRecommendation, List<string>>.Enumerator key = entityType.GetEnumerator();
 
-                while (key.MoveNext() && insert == true)
+                while (key.MoveNext() && insert.Equals("ok"))
                 {
                     Dictionary<EntityRecommendation, double?>.Enumerator entityEnumerator = entityScore.GetEnumerator();
                     List<string> entityConsidered = new List<string>();
